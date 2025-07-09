@@ -84,6 +84,10 @@ io.on('connection', socket => {
 
         saveAndUpdate();
     });
+
+    socket.on('manualBackup', () => {
+        backupToMongoDB();
+    });
 });
 
 initialize().then(() => {
