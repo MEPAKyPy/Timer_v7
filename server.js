@@ -16,11 +16,27 @@ let users = [];
 const timers = new Map();
 
 async function initialize() {
+    let needRestore = false;
+
     if (!fs.existsSync('./users.json')) {
-        await restoreFromMongoDB();
+        needRestore = true;
+    } else {
+        const content = fs.readFileSync('./users.json', 'utf-8').trim();
+        if (content === '' || content === '[]') {
+            needRestore = true;
+        }
     }
+
+    if (needRestore) {
+        console.log('[Startup] Restoring data from MongoDB...');
+        await restoreFromMongoDB();
+    } else {
+        console.log('[Startup] Local data found, skipping restore.');
+    }
+
     users = readUsers();
 }
+
 
 function resetAllTimers() {
     users.forEach(u => {
