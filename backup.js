@@ -9,7 +9,17 @@ async function backupToMongoDB() {
         await client.connect();
         const db = client.db('timer_backup');
         const users = JSON.parse(fs.readFileSync('./users.json', 'utf-8'));
-        const logs = fs.existsSync('./logs.json') ? JSON.parse(fs.readFileSync('./logs.json', 'utf-8')) : [];
+
+        let logs = [];
+        if (fs.existsSync('./logs.json')) {
+            try {
+                const content = fs.readFileSync('./logs.json', 'utf-8');
+                logs = content ? JSON.parse(content) : [];
+            } catch (err) {
+                console.error('[Backup] Failed to parse logs.json:', err);
+                logs = [];
+            }
+        }
 
         await db.collection('backups').updateOne(
             { _id: 'latest' },
