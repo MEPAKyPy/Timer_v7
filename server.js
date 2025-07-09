@@ -1,95 +1,83 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const db = require('./db');
-const fs = require('fs');
 const path = require('path');
+const cron = require('node-cron');
+const fs = require('fs');
+const { readUsers, writeUsers } = require('./storage');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-
 app.use(express.static(path.join(__dirname, 'public')));
 
-let users = [];
+let users = readUsers();
+const timers = new Map();
 
-async function loadUsers() {
-    users = await db.getAll();
-}
-
-function logAction(file, action, details) {
-    const timestamp = new Date().toISOString();
-    const log = `[${timestamp}] ${action} - ${JSON.stringify(details)}\n`;
-    fs.appendFileSync(file, log);
-}
-
-function cleanLogs(file) {
-    if (!fs.existsSync(file)) return;
-    const lines = fs.readFileSync(file, 'utf-8').split('\n').filter(Boolean);
-    const now = new Date();
-    const recentLines = lines.filter(line => {
-        const dateMatch = line.match(/\[(.*?)\]/);
-        if (!dateMatch) return false;
-        const logDate = new Date(dateMatch[1]);
-        const diff = (now - logDate) / (1000 * 60 * 60 * 24);
-        return diff <= 7;
+function resetAllTimers() {
+    users.forEach(u => {
+        u.timeLeft = 90 * 60;
+        u.isRunning = false;
+        u.isExpired = false;
     });
-    fs.writeFileSync(file, recentLines.join('\n') + '\n');
+    writeUsers(users);
+    io.emit('update', users);
 }
 
-async function resetTimersIfNeeded() {
-    const today = new Date().toISOString().split('T')[0];
-    let changed = false;
-    for (const user of users) {
-        if (user.lastResetDate !== today) {
-            logAction('system_actions.log', 'DailyReset', { id: user.id, name: user.name });
-            user.timeLeft = 90 * 60;
-            user.isRunning = false;
-            user.startedAt = null;
-            user.lastResetDate = today;
-            await db.update(user);
-            changed = true;
-        }
-    }
-    if (changed) users = await db.getAll();
+cron.schedule('0 0 * * *', resetAllTimers); // раз в сутки
+
+function saveAndUpdate() {
+    writeUsers(users);
+    io.emit('update', users);
 }
 
-io.on('connection', async (socket) => {
-    await loadUsers();
-    await resetTimersIfNeeded();
-    cleanLogs('system_actions.log');
-    cleanLogs('timer_actions.log');
+io.on('connection', socket => {
     socket.emit('init', users);
 
-    socket.on('addUser', async (user) => {
-        user.lastResetDate = new Date().toISOString().split('T')[0];
+    socket.on('addUser', user => {
         users.push(user);
-        await db.add(user);
-        logAction('system_actions.log', 'AddUser', { id: user.id, name: user.name });
-        io.emit('update', users);
+        saveAndUpdate();
     });
 
-    socket.on('deleteUser', async (id) => {
-        const user = users.find(u => u.id === id);
-        if (user) {
-            logAction('system_actions.log', 'DeleteUser', { id: user.id, name: user.name });
+    socket.on('deleteUser', id => {
+        const u = users.find(u => u.id === id);
+        if (u && timers.has(id)) {
+            clearInterval(timers.get(id));
+            timers.delete(id);
         }
         users = users.filter(u => u.id !== id);
-        await db.remove(id);
-        io.emit('update', users);
+        saveAndUpdate();
     });
 
-    socket.on('updateUser', async (user) => {
-        const index = users.findIndex(u => u.id === user.id);
-        if (index !== -1) {
-            if (users[index].isRunning !== user.isRunning) {
-                logAction('timer_actions.log', user.isRunning ? 'Start' : 'Pause', { id: user.id, name: user.name });
-            }
-            users[index] = user;
-            await db.update(user);
-            io.emit('update', users);
+    socket.on('toggleTimer', id => {
+        const user = users.find(u => u.id === id);
+        if (!user || user.isExpired) return;
+
+        if (user.isRunning) {
+            clearInterval(timers.get(id));
+            timers.delete(id);
+            user.isRunning = false;
+        } else {
+            user.isRunning = true;
+            const interval = setInterval(() => {
+                user.timeLeft--;
+                if (user.timeLeft <= 0) {
+                    user.timeLeft = 0;
+                    user.isRunning = false;
+                    user.isExpired = true;
+                    clearInterval(interval);
+                    timers.delete(id);
+                }
+                io.emit('update', users);
+            }, 1000);
+            timers.set(id, interval);
         }
+
+        saveAndUpdate();
     });
 });
 
-server.listen(3000, () => console.log('Server running on http://localhost:3000'));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
