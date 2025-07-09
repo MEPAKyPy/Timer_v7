@@ -5,14 +5,22 @@ const path = require('path');
 const cron = require('node-cron');
 const fs = require('fs');
 const { readUsers, writeUsers } = require('./storage');
+const { backupToMongoDB, restoreFromMongoDB } = require('./backup');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
-let users = readUsers();
+let users = [];
 const timers = new Map();
+
+async function initialize() {
+    if (!fs.existsSync('./users.json')) {
+        await restoreFromMongoDB();
+    }
+    users = readUsers();
+}
 
 function resetAllTimers() {
     users.forEach(u => {
@@ -24,7 +32,8 @@ function resetAllTimers() {
     io.emit('update', users);
 }
 
-cron.schedule('0 0 * * *', resetAllTimers); // раз в сутки
+cron.schedule('0 0 * * *', resetAllTimers);
+cron.schedule('0 * * * *', backupToMongoDB);
 
 function saveAndUpdate() {
     writeUsers(users);
@@ -77,7 +86,9 @@ io.on('connection', socket => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+initialize().then(() => {
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+    });
 });
