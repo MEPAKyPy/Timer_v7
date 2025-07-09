@@ -1,7 +1,7 @@
-const { MongoClient, ObjectId } = require('mongodb');
+const { MongoClient } = require('mongodb');
 
-const uri = 'mongodb+srv://sananjafarovv:noRQiwnxX562fUXS@cluster0.kyoo4ly.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
-const client = new MongoClient(uri);
+const uri = 'mongodb+srv://sananjafarovv:noRQiwnxX562fUXS@cluster0.kyoo4ly.mongodb.net/?tls=true';
+const client = new MongoClient(uri, { tls: true });
 const db = client.db('timer_db');
 const usersCollection = db.collection('users');
 
