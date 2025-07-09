@@ -15,6 +15,31 @@ app.use(express.static(path.join(__dirname, 'public')));
 let users = [];
 const timers = new Map();
 
+function readLogs() {
+    if (!fs.existsSync('./logs.json')) return [];
+    try {
+        const content = fs.readFileSync('./logs.json', 'utf-8').trim();
+        return content ? JSON.parse(content) : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeLogs(logs) {
+    fs.writeFileSync('./logs.json', JSON.stringify(logs, null, 2));
+}
+
+function addLog(user, action) {
+    const logs = readLogs();
+    logs.push({
+        u: user.name,
+        a: action,
+        t: user.timeLeft,
+        d: new Date().toISOString()
+    });
+    writeLogs(logs);
+}
+
 async function initialize() {
     let needRestore = false;
 
@@ -36,7 +61,6 @@ async function initialize() {
 
     users = readUsers();
 }
-
 
 function resetAllTimers() {
     users.forEach(u => {
@@ -82,8 +106,10 @@ io.on('connection', socket => {
             clearInterval(timers.get(id));
             timers.delete(id);
             user.isRunning = false;
+            addLog(user, 'Pause');
         } else {
             user.isRunning = true;
+            addLog(user, 'Start');
             const interval = setInterval(() => {
                 user.timeLeft--;
                 if (user.timeLeft <= 0) {
