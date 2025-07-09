@@ -4,22 +4,67 @@
     <meta charset="UTF-8">
     <title>Admin Panel</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
-        .user { padding: 10px; background: #fff; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        button { margin-top: 10px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .user-item {
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .input-field {
+            padding: 10px;
+            width: calc(100% - 24px);
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 2px solid #ddd;
+        }
     </style>
 </head>
 <body>
-    <h1>Admin Panel</h1>
-    <div id="loginSection">
-        <input type="password" id="passwordInput" placeholder="Enter admin password">
-        <button onclick="checkPassword()">Login</button>
-    </div>
-    <div id="adminSection" style="display: none;">
-        <input type="text" id="nameInput" placeholder="Enter user name">
-        <button onclick="addUser()">Add User</button>
-        <button onclick="backupNow()">Backup Now</button>
-        <div id="users"></div>
+    <div class="container">
+        <h1>Admin Panel</h1>
+        <div id="loginSection">
+            <input type="password" id="passwordInput" class="input-field" placeholder="Enter admin password">
+            <button onclick="checkPassword()">Login</button>
+        </div>
+        <div id="adminSection" style="display: none;">
+            <input type="text" id="nameInput" class="input-field" placeholder="Enter user name">
+            <button onclick="addUser()">Add User</button>
+            <button onclick="backupNow()">Backup Now</button>
+            <div id="users"></div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -80,7 +125,7 @@
             container.innerHTML = '';
             users.forEach(user => {
                 const div = document.createElement('div');
-                div.className = 'user';
+                div.className = 'user-item';
                 div.innerHTML = `
                     <b>${user.name}</b><br>
                     Timer: ${format(user.timeLeft)}<br>
