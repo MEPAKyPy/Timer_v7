@@ -1,4 +1,3 @@
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -12,7 +11,11 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-let users = db.getAll();
+let users = [];
+
+async function loadUsers() {
+    users = await db.getAll();
+}
 
 function logAction(file, action, details) {
     const timestamp = new Date().toISOString();
@@ -34,52 +37,56 @@ function cleanLogs(file) {
     fs.writeFileSync(file, recentLines.join('\n') + '\n');
 }
 
-function resetTimersIfNeeded() {
+async function resetTimersIfNeeded() {
     const today = new Date().toISOString().split('T')[0];
-    users.forEach(user => {
+    let changed = false;
+    for (const user of users) {
         if (user.lastResetDate !== today) {
             logAction('system_actions.log', 'DailyReset', { id: user.id, name: user.name });
             user.timeLeft = 90 * 60;
-            user.isRunning = 0;
+            user.isRunning = false;
             user.startedAt = null;
             user.lastResetDate = today;
-            db.update(user);
+            await db.update(user);
+            changed = true;
         }
-    });
+    }
+    if (changed) users = await db.getAll();
 }
 
-io.on('connection', (socket) => {
-    resetTimersIfNeeded();
+io.on('connection', async (socket) => {
+    await loadUsers();
+    await resetTimersIfNeeded();
     cleanLogs('system_actions.log');
     cleanLogs('timer_actions.log');
     socket.emit('init', users);
 
-    socket.on('addUser', (user) => {
+    socket.on('addUser', async (user) => {
         user.lastResetDate = new Date().toISOString().split('T')[0];
         users.push(user);
-        db.add(user);
+        await db.add(user);
         logAction('system_actions.log', 'AddUser', { id: user.id, name: user.name });
         io.emit('update', users);
     });
 
-    socket.on('deleteUser', (id) => {
+    socket.on('deleteUser', async (id) => {
         const user = users.find(u => u.id === id);
         if (user) {
             logAction('system_actions.log', 'DeleteUser', { id: user.id, name: user.name });
         }
         users = users.filter(u => u.id !== id);
-        db.remove(id);
+        await db.remove(id);
         io.emit('update', users);
     });
 
-    socket.on('updateUser', (user) => {
+    socket.on('updateUser', async (user) => {
         const index = users.findIndex(u => u.id === user.id);
         if (index !== -1) {
             if (users[index].isRunning !== user.isRunning) {
                 logAction('timer_actions.log', user.isRunning ? 'Start' : 'Pause', { id: user.id, name: user.name });
             }
             users[index] = user;
-            db.update(user);
+            await db.update(user);
             io.emit('update', users);
         }
     });
