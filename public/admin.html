@@ -43,6 +43,12 @@
         button:hover {
             background: #5a67d8;
         }
+        .btn-pause {
+            background: #ed8936;
+        }
+        .btn-pause:hover {
+            background: #dd6b20;
+        }
         .input-field {
             padding: 10px;
             width: calc(100% - 24px);
@@ -129,7 +135,9 @@
                 div.innerHTML = `
                     <b>${user.name}</b><br>
                     Timer: ${format(user.timeLeft)}<br>
-                    <button onclick="toggleTimer(${user.id})">${user.isRunning ? 'Pause' : 'Start'}</button>
+                    <button class="${user.isRunning ? 'btn-pause' : ''}" onclick="toggleTimer(${user.id})">
+                        ${user.isRunning ? 'Pause' : 'Start'}
+                    </button>
                     <button onclick="deleteUser(${user.id})">Delete</button>
                 `;
                 container.appendChild(div);
