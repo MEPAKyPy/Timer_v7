@@ -69,6 +69,7 @@
             <input type="text" id="nameInput" class="input-field" placeholder="Enter user name">
             <button onclick="addUser()">Add User</button>
             <button onclick="backupNow()">Backup Now</button>
+            <button onclick="downloadLogs()">Download Logs</button>
             <div id="users"></div>
         </div>
     </div>
@@ -124,6 +125,10 @@
         function backupNow() {
             socket.emit('manualBackup');
             alert('Backup triggered!');
+        }
+
+        function downloadLogs() {
+            window.location.href = '/logs';
         }
 
         function render() {
