@@ -61,6 +61,28 @@
         .btn-pause:hover {
             background: #dd6b20;
         }
+
+        /* ✅ Адаптация для телефонов */
+        @media (max-width: 600px) {
+            .container {
+                width: 80%;
+                height: 90%;
+                max-height: 90vh;
+                border-radius: 20px;
+                padding: 25px;
+            }
+            h1 {
+                font-size: 22px;
+            }
+            .user-item {
+                padding: 20px;
+            }
+            button {
+                width: 100%;
+                font-size: 18px;
+                margin-top: 10px;
+            }
+        }
     </style>
 </head>
 <body>
