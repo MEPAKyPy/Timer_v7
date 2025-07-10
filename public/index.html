@@ -64,26 +64,16 @@
 
         /* ✅ Жестко фиксируем на телефонах */
         @media (max-width: 600px) {
-            .container {
-                width: 320px;
-                max-width: 320px;
-                height: 90vh;
-                max-height: 90vh;
-                border-radius: 20px;
-                padding: 25px;
-            }
-            h1 {
-                font-size: 22px;
-            }
-            .user-item {
-                padding: 20px;
-            }
-            button {
-                width: 100%;
-                font-size: 18px;
-                margin-top: 10px;
-            }
-        }
+ body {
+        display: block;
+    }
+    .container {
+        width: 320px;
+        margin: 20px auto;
+        height: auto;
+        max-height: none;
+    }
+}
     </style>
 </head>
 <body>
