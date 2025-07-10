@@ -40,6 +40,13 @@ function addLog(user, action) {
     writeLogs(logs);
 }
 
+function cleanOldLogs() {
+    const logs = readLogs();
+    const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const filtered = logs.filter(log => new Date(log.d).getTime() >= twoWeeksAgo);
+    writeLogs(filtered);
+}
+
 async function initialize() {
     let needRestore = false;
 
@@ -73,7 +80,10 @@ function resetAllTimers() {
 }
 
 cron.schedule('0 0 * * *', resetAllTimers);
-cron.schedule('0 * * * *', backupToMongoDB);
+cron.schedule('0 * * * *', () => {
+    cleanOldLogs();
+    backupToMongoDB();
+});
 
 function saveAndUpdate() {
     writeUsers(users);
@@ -128,8 +138,17 @@ io.on('connection', socket => {
     });
 
     socket.on('manualBackup', () => {
+        cleanOldLogs();
         backupToMongoDB();
     });
+});
+
+app.get('/logs', (req, res) => {
+    if (fs.existsSync('./logs.json')) {
+        res.download('./logs.json', 'logs.json');
+    } else {
+        res.status(404).send('No logs found');
+    }
 });
 
 initialize().then(() => {
