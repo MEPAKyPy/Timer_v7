@@ -62,18 +62,31 @@
             background: #dd6b20;
         }
 
-        /* ✅ Жестко фиксируем на телефонах */
+        /* ✅ Жесткое исправление для Safari (убираем flex) */
         @media (max-width: 600px) {
- body {
-        display: block;
-    }
-    .container {
-        width: 320px;
-        margin: 20px auto;
-        height: auto;
-        max-height: none;
-    }
-}
+            body {
+                display: block;
+            }
+            .container {
+                width: 320px;
+                margin: 20px auto;
+                height: auto;
+                max-height: none;
+                border-radius: 20px;
+                padding: 25px;
+            }
+            h1 {
+                font-size: 22px;
+            }
+            .user-item {
+                padding: 20px;
+            }
+            button {
+                width: 100%;
+                font-size: 18px;
+                margin-top: 10px;
+            }
+        }
     </style>
 </head>
 <body>
